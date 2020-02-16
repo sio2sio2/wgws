@@ -14,7 +14,7 @@ Requisitos
 
 Configuración
 =============
-Basta con añadir la sección ``[Tunel]`` al fichero de configuración de la
+Basta con añadir la sección ``[Tunnel]`` al fichero de configuración de la
 interfaz que puede añadir la definición de tres variables:
 
 ========= ============= =================================================================
@@ -26,8 +26,7 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
 ========= ============= =================================================================
 
 **Cliente**
-   La configuración sólo requiere añadir la sección ``[Tunel]`` para advertir a **wgws**
-   de que se quiere salir a través de wstunnel_:
+   Por lo general, no requiere más configuración que añadir la sección ``[Tunnel]``:
 
    .. code-block:: ini
 
@@ -54,7 +53,7 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
 
          # wgws -n up wg0
 
-   #. Usar wstunnel_ sin usar SSL:
+   #. Usar wstunnel_ sin SSL:
 
       .. code-block:: console
 
