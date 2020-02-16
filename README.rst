@@ -107,6 +107,11 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
       [Tunnel]
       Address = 127.0.0.1:8080
 
+   y que se delegue la responsabilidad de usar o no SSL al *proxy*.
+
+Más información en `aquí
+<https://sio2sio2.github.io/doc-linux/07.serre/04.vpn/02.wireguard/02.confalt.html#redes-restringidas>`_.
+
 Agenda
 ======
 Dar soporte a la variable ``DNS`` de `wg-quick`_.
