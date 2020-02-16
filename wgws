@@ -170,7 +170,6 @@ get_tunnelconf() {
 
    if [ "$tunnel" = "0" ] || ! grep -qE '^\[Tunnel\]\s*$' "$CONFFILE"; then
       tunnel=
-      return 0
    else
       tunnel=1
    fi
@@ -205,6 +204,15 @@ get_tunnelconf() {
    fi
 
    Address="$Address${port:+:$port}"
+
+   if [ -n "$server_address" ]; then
+      server_ip=$(get_ip "$server_address")
+      gw=$(expr "$(ip route get "$server_ip")" : '.*via \(.\+ dev [^ ]\+\)')
+      set -- $gw
+      gw="$1"
+      eth="$3"
+   fi
+
 }
 
 
@@ -255,26 +263,34 @@ firewall() {
 
    case "$1" in
       up)
-         pid="$(get_pid)"
+         execute nft add table wireguard
+         execute nft add chain wireguard output "{ type route hook output priority -250; }"
 
-         if ! mount | grep -q '/sys/fs/cgroup'; then
-            error 0 "No puede marcarse el tráfico de wstunnel"
-            return 1
+         if [ -n "$tunnel" ]; then
+            if ! mount | grep -q '/sys/fs/cgroup'; then
+               error 0 "No puede marcarse el tráfico de wstunnel"
+               return 1
+            fi
+
+            pid="$(get_pid)"
+
+            execute mkdir -p /sys/fs/cgroup/net_cls/"$name"
+            execute -f echo "$CLASSID" ">" /sys/fs/cgroup/net_cls/"$name"/net_cls.classid
+            execute -f echo "${pid:-WSTUNNEL_PID}" ">>" /sys/fs/cgroup/net_cls/"$name"/tasks
+
+            execute nft add rule wireguard output meta cgroup "$CLASSID" meta mark set "$MARK"
          fi
 
-         execute mkdir -p /sys/fs/cgroup/net_cls/"$name"
-         execute -f echo "$CLASSID" ">" /sys/fs/cgroup/net_cls/"$name"/net_cls.classid
-         execute -f echo "${pid:-WSTUNNEL_PID}" ">>" /sys/fs/cgroup/net_cls/"$name"/tasks
-
-         execute nft add table wstunnel
-         execute nft add chain wstunnel output "{ type route hook output priority 50; }"
-         execute nft add rule wstunnel output meta cgroup "$CLASSID" meta mark set "$MARK"
+         # Para asegurarnos de que lo que sale por la interfaz física,
+         # tiene la IP de la interfaz física (necesario para PBR)
+         execute nft add chain wireguard postrouting "{ type nat hook postrouting priority 100; }"
+         execute nft add rule wireguard postrouting oif "$eth" meta mark "$MARK" ct mark set mark masquerade
 
          execute sysctl -q net.ipv4.conf.all.src_valid_mark=1
          ;;
       down)
-         execute nft flush table wstunnel
-         execute nft delete table wstunnel
+         execute nft flush table wireguard
+         execute nft delete table wireguard
          ;;
    esac
 }
@@ -326,7 +342,7 @@ up() {
    fi
 
    # Acciones posteriores a levantar la interfaz (PostUp)
-   eval "$(get_value "$CONFFILE" PreUp Interface | sed -r 's:%i:'"$IFACE"':; s:^:execute :')"
+   eval "$(get_value "$CONFFILE" PostUp Interface | sed -r 's:%i:'"$IFACE"':; s:^:execute :')"
 }
 
 
@@ -361,10 +377,7 @@ down() {
          execute ip rule delete table main suppress_prefixlength 0
          execute ip route flush table "$table"
 
-         if [ -n "$tunnel" ]; then
-            # TODO:: ¿Hay que hacer algo con /sys/fs/cgroup/wireguard?
-            firewall down
-         fi
+         firewall down
       else
          table=${table:-main}
          for net in "$@"; do
@@ -414,18 +427,13 @@ route() {
    done
 
    if [ "$net" = "0.0.0.0/0" ]; then
-      if [ -n "$server_address" ]; then
-         server_ip=$(get_ip "$server_address")
-         gw=$(expr "$(ip route get "$server_ip")" : '.*via \(.\+ dev [^ ]\+\)')
-      fi
-
       # Estrategia: 
 
       # a) Se crea una tabla que enrute el tráfico por la interfaz wg.
       #    salvo el dirigido al servidor VPN.
       table=${table:-$DEFAULT_PORT}
       execute ip route add default dev "$IFACE" table "$table"
-      [ -n "$server_ip" ] && execute ip route add "$server_ip" via $gw table "$table"
+      [ -n "$server_ip" ] && execute ip route add "$server_ip" via $gw dev $eth table "$table"
 
       # b) La tabla la usará el tráfico que con contenga una determinada marca.
       execute ip rule add not fwmark "$MARK" table "$table"
@@ -436,9 +444,7 @@ route() {
       # c) Se marca el tráfico que sale de la interfaz wg
       execute wg set "$IFACE" fwmark "$MARK"
 
-      if [ -n "$tunnel" ]; then  # Marcamos el tráfico que genera wstunnel
-         firewall up
-      fi
+      firewall up
    else
       table=${table:-main}
       for net in "$@"; do

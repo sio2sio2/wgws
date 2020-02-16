@@ -65,6 +65,15 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
 
          # wgws -s up wg0
 
+   Si se quiere evitar que un determinado tráfico **no** salga por el túnel, puede
+   marcarse:
+
+   .. code-block:: ini
+
+      PostUp = nft add rule wireguard output tcp dport { http, https } meta mark set 51820
+
+   que no enviará por el túnel el tráfico web.
+
 **Servidor**
    Como en el cliente, basta con añadir la sección ``[Tunnel]`` a la configuración:
 
