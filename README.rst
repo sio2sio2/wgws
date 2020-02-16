@@ -65,7 +65,7 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
 
          # wgws -s up wg0
 
-   Si se quiere evitar que un determinado tráfico **no** salga por el túnel, puede
+   Si se quiere **evitar** que un determinado tráfico salga por el túnel, puede
    marcarse:
 
    .. code-block:: ini
