@@ -40,7 +40,7 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
       [Peer]
       PublicKey = /Pr37VgN7GVvizJw9FpCL62DSwocdNEf7lwfdDRZXj8=
       Endpoint = vpn.example.net:1194
-      AllowedIPs = 10.8.0.1/32
+      AllowedIPs = 0.0.0.0/0
 
       [Tunnel]
       ; No es necesaria configuración adicional
@@ -114,7 +114,7 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
    remota lo permite, la conexión VPN puede llevarse a cabo directamente sin
    usar el *websocket*.
 
-Más información en `aquí
+Más información en `Linuxnomicón
 <https://sio2sio2.github.io/doc-linux/07.serre/04.vpn/02.wireguard/02.confalt.html#redes-restringidas>`_.
 
 Agenda
