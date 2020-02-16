@@ -60,7 +60,7 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
 
          # wgws up wg0
 
-   #. USar wstunnel_ en una conexión SSL:
+   #. Usar wstunnel_ en una conexión SSL:
 
       .. code-block:: console
 
@@ -108,6 +108,11 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
       Address = 127.0.0.1:8080
 
    y que se delegue la responsabilidad de usar o no SSL al *proxy*.
+
+   En cualquier caso, wireguard_ sigue escuchando en el puerto *1194/UDP* (o
+   donde se quiera colocar) de todas las interfaces, por lo que, si la red
+   remota lo permite, la conexión VPN puede llevarse a cabo directamente sin
+   usar el *websocket*.
 
 Más información en `aquí
 <https://sio2sio2.github.io/doc-linux/07.serre/04.vpn/02.wireguard/02.confalt.html#redes-restringidas>`_.
