@@ -154,11 +154,30 @@ is_server() {
    # Si no hay puerta de escucha, debe ser un cliente.
    grep -qE '^ListenPort\b' "$CONFFILE" || return 1
 
-   # Si hay más definida más de una conexión es un servidor.
+   # Si hay definida más de una conexión es un servidor.
    [ $(grep -Ec '^\[Peer\]\s*$' "$CONFFILE") -gt 1 ] && return 0
 
    # Si no tiene definido el otro extremo, es un servidor
    ! grep -qE '^Endpoint\s*='  "$CONFFILE"
+}
+
+
+#
+# ¿Es el túnel la puerta de enlace?
+# $1: -q, si se quiere no escribir nada en stdout.
+# stdout: Las redes que contiene AllowedIPs.
+#
+is_tunnel_gateway() {
+   local net quiet=${1:+1} IFS=", 	
+"
+   set -- $(get_value "$CONFFILE" AllowedIPs Peer)
+
+   for net in "$@"; do
+      [ "$net" = "0.0.0.0/0" ] && break
+   done
+
+   [ -z "$quiet" ] && echo "$@"
+   [ "$net" = "0.0.0.0/0" ]  
 }
 
 
@@ -183,6 +202,8 @@ get_tunnelconf() {
    Address=${Address%:$port}
 
    if is_server; then
+      is_tunnel_gateway -q && error 0 "[?] El servidor envía su tráfico de internet al cliente"
+
       server_port=$(get_value "$CONFFILE" ListenPort Interface)
 
       # Por defecto, el websocket en el servidor está expuesto.
@@ -350,8 +371,7 @@ up() {
 # Acciones que destruyen la conexión.
 #
 down() {
-   local net pid table IFS=", 		
-"
+   local pid table nets net
 
    if [ -z "$SIMULATE" ] && ! exists "$IFACE"; then
       error 1 "La interfaz $IFACE no existe"
@@ -365,13 +385,8 @@ down() {
 
    table=$(get_value "$CONFFILE" Table Interface)
    if [ "$table" != "0" ] && [ "$table" != "off" ]; then
-      set -- $(get_value "$CONFFILE" AllowedIPs Peer)
-
-      for net in "$@"; do
-         [ "$net" = "0.0.0.0/0" ] && break
-      done
-
-      if [ "$net" = "0.0.0.0/0" ]; then
+      nets=$(is_tunnel_gateway)
+      if [ $? -eq 0 ]; then
          table=${table:-51820}
          execute ip rule delete not fwmark "$MARK" table "$table"
          execute ip rule delete table main suppress_prefixlength 0
@@ -380,7 +395,7 @@ down() {
          firewall down
       else
          table=${table:-main}
-         for net in "$@"; do
+         for net in $nets; do
             execute ip route delete "$net" dev "$IFACE" table "$table"
          done
       fi
@@ -417,16 +432,9 @@ get_ip() {
 # $1: Nombre de la tabla en la que se apuntan las rutas.
 #
 route() {
-   local net gw pid server_ip table="$1" IFS=", 		
-"
-   set -- $(get_value "$CONFFILE" AllowedIPs Peer)
-   unset IFS
-
-   for net in "$@"; do
-      [ "$net" = "0.0.0.0/0" ] && break
-   done
-
-   if [ "$net" = "0.0.0.0/0" ]; then
+   local gw pid server_ip nets net table="$1"
+   nets=$(is_tunnel_gateway)
+   if [ $? -eq 0 ]; then
       # Estrategia: 
 
       # a) Se crea una tabla que enrute el tráfico por la interfaz wg.
@@ -447,7 +455,7 @@ route() {
       firewall up
    else
       table=${table:-main}
-      for net in "$@"; do
+      for net in $nets; do
          execute ip route add "$net" dev "$IFACE" table "$table"
       done
    fi
@@ -460,14 +468,14 @@ route() {
 { ## Tratamientos de argumetos
    while getopts "hnqsS" opt; do
       case "$opt" in
-         h)
+         h|help)
             help
             exit 0
             ;;
-         s) secure_c=1 ;;
-         n) tunnel=0 ;;
-         q) QUIET=1 ;;
-         S) SIMULATE=1 ;;
+         s|secure) secure_c=1 ;;
+         n|no-tunnel) tunnel=0 ;;
+         q|quiet) QUIET=1 ;;
+         S|simulate) SIMULATE=1 ;;
          \?)
             error 2 "La opción -$OPTARG no existe."
             ;;
@@ -487,6 +495,7 @@ route() {
    ACTION=$1
    IFACE=$2
 }
+
 
 CONFFILE=/etc/wireguard/$2.conf
 
