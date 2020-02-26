@@ -321,21 +321,6 @@ firewall() {
          execute nft add table wireguard
          execute nft add chain wireguard output "{ type route hook output priority -250; }"
 
-         if [ -n "$tunnel" ]; then
-            if ! mount | grep -q '/sys/fs/cgroup'; then
-               error 0 "No puede marcarse el tráfico de wstunnel"
-               return 1
-            fi
-
-            pid="$(get_pid)"
-
-            execute mkdir -p /sys/fs/cgroup/net_cls/"$name"
-            execute -f echo "$CLASSID" ">" /sys/fs/cgroup/net_cls/"$name"/net_cls.classid
-            execute -f echo "${pid:-WSTUNNEL_PID}" ">>" /sys/fs/cgroup/net_cls/"$name"/tasks
-
-            execute nft add rule wireguard output meta cgroup "$CLASSID" meta mark set "$MARK"
-         fi
-
          # Para asegurarnos de que lo que sale por la interfaz física,
          # tiene la IP de la interfaz física (necesario para PBR)
          execute nft add chain wireguard postrouting "{ type nat hook postrouting priority 100; }"
@@ -386,7 +371,7 @@ up() {
                         --restrictTo "127.0.0.1:$server_port"
       else
          lanzar_proceso wstunnel -q --udp --udpTimeoutSec -1 \
-                        -L "$Address:127.0.0.1:$server_port" \
+                        --soMark="$MARK" -L "$Address:127.0.0.1:$server_port" \
                         $proto://$server_address$WPath
       fi
    fi

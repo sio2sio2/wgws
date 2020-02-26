@@ -9,13 +9,15 @@ redes gestionadas por administradores excesivamente celosos.
 Requisitos
 ==========
 * nftables_.
-* wstunnel_, instalado en algún directorio del *PATH*.
+* wstunnel_, con `soporte para  SO_MARK
+  <https://github.com/erebe/wstunnel/issues/33>`_ instalado en algún directorio
+  del *PATH*.
 * wireguard_.
 
 Configuración
 =============
 Basta con añadir la sección ``[Tunnel]`` al fichero de configuración de la
-interfaz que puede añadir la definición de tres variables:
+interfaz, a la cual pueden añadir las definiciones de tres variables:
 
 ========= ============= =================================================================
 Variable   Valor         Descripción
@@ -127,7 +129,8 @@ Más información en `Linuxnomicón
 
 Agenda
 ======
-Dar soporte a la variable ``DNS`` de `wg-quick`_.
+* Dar soporte a la variable ``DNS`` de `wg-quick`_.
+* Permitir el uso de **iptables**.
 
 .. _wireguard: https://www.wireguard.com/
 .. _wstunnel: https://github.com/erebe/wstunnel
