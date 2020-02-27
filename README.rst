@@ -1,15 +1,19 @@
 wgws
 ****
 Es un *script* en Bourne shell (ejecutable con dash_) que facilita la creación
-de túneles VPN tal como hace `wg-quick`_ y usa para su configuración las mismas
-variables que éste (*Address*, *Table*, *PreUp*, etc.). Permite, además,
-encapsular el túnel VPN a través de websockets para burlar restricciones en
-redes gestionadas por administradores excesivamente celosos.
+de túneles VPN a la manera de `wg-quick`_ y usando su misma configuración
+(*Address*, *Table*, *PreUp*, etc.). Las ventajas frente al *script* oficial son
+qie:
+
+- Permite encapsular el túnel VPN mediante *Websockets* para burlar
+  restricciones en redes gestionadas por administradores excesivamente celosos.
+- Hecho lo anterior, permite establecer excepciones al encapsulamiento, de
+  manera que haya cierto tipo de tráfico que no utilice el túnel VPN para salir.
 
 Requisitos
 ==========
 * nftables_.
-* wstunnel_, con `soporte para  SO_MARK
+* wstunnel_ de Romain Gerard, con `soporte para  SO_MARK
   <https://github.com/erebe/wstunnel/issues/33>`_ instalado en algún directorio
   del *PATH*.
 * wireguard_.
@@ -17,7 +21,7 @@ Requisitos
 Configuración
 =============
 Basta con añadir la sección ``[Tunnel]`` al fichero de configuración de la
-interfaz, a la cual pueden añadir las definiciones de tres variables:
+interfaz, a la cual pueden añadirse las definiciones de tres variables:
 
 ========= ============= =================================================================
 Variable   Valor         Descripción
@@ -55,26 +59,28 @@ WPath       /ruta/       (Sólo cliente) Ruta del servidor en que es asccesible 
 
          # wgws -n up wg0
 
+      lo cual es equivalente a usar `wg-quick`_.
+
    #. Usar wstunnel_ sin SSL:
 
       .. code-block:: console
 
          # wgws up wg0
 
-   #. Usar wstunnel_ en una conexión SSL:
+   #. Usar wstunnel_ cifrando con SSL:
 
       .. code-block:: console
 
          # wgws -s up wg0
 
    Si se quiere **evitar** que un determinado tráfico salga por el túnel, puede
-   marcarse:
+   marcarse con un acción ``PostUp``:
 
    .. code-block:: ini
 
       PostUp = nft add rule wireguard output tcp dport { http, https } meta mark set 51820
 
-   que no enviará por el túnel el tráfico web.
+   que enviará que el tráfico web use la VPN.
 
 **Servidor**
    Como en el cliente, basta con añadir la sección ``[Tunnel]`` a la configuración:
