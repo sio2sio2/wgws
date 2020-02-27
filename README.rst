@@ -3,7 +3,7 @@ wgws
 Es un *script* en Bourne shell (ejecutable con dash_) que facilita la creación
 de túneles VPN a la manera de `wg-quick`_ y usando su misma configuración
 (*Address*, *Table*, *PreUp*, etc.). Las ventajas frente al *script* oficial son
-qie:
+que:
 
 - Permite encapsular el túnel VPN mediante *Websockets* para burlar
   restricciones en redes gestionadas por administradores excesivamente celosos.
@@ -137,6 +137,8 @@ Agenda
 ======
 * Dar soporte a la variable ``DNS`` de `wg-quick`_.
 * Permitir el uso de **iptables**.
+* En el lado del servidor, añadir una opción para que no se añada la opción
+  ``--restrictTo``.
 
 .. _wireguard: https://www.wireguard.com/
 .. _wstunnel: https://github.com/erebe/wstunnel
